@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Logger } from '../../helpers/logger';
 import { LogType } from '../../helpers/enum';
 import { getIdFromBearerToken } from '../../helpers/authHelper';
-import { createStudentCallingDB } from '../../services/postgresClient';
+import { createStudentCallingDB, getStudentsDB } from '../../services/postgresClient';
 
 const logger = new Logger();
 
@@ -16,29 +16,46 @@ export const createStudentCalling = async (request: Request, response: Response)
         const body = request.body;
         const items = Array.isArray(body) ? body : [body];
 
-        // Prepare data for Function.
-        const dataToInsert = items.map(item => ({
-            ...item,
-            id: item.id || uuidv4()
-        }));
+        // Prepare data for Function - always generate new UUID, ignore ID from request
+        const dataToInsert = items.map(item => {
+            const { id, ...itemWithoutId } = item;
+            return {
+                ...itemWithoutId,
+                id: uuidv4()
+            };
+        });
 
+        logger.logInfo(`Attempting to create ${dataToInsert.length} student calling record(s)`);
         const results = await createStudentCallingDB(dataToInsert, userId, userId);
+        logger.logInfo(`Database returned ${results?.length || 0} records`);
 
         if (results && results.length > 0) {
+            // Get unique student IDs from created records
+            const studentIds = [...new Set(results.map(r => r.student_id))];
+            
+            // Fetch full student details with calling and incentives for all affected students
+            const studentDetailsPromises = studentIds.map(studentId => 
+                getStudentsDB(studentId, null, null, null, null, userId, null, null, null, null, null, null)
+            );
+            
+            const studentDetailsResults = await Promise.all(studentDetailsPromises);
+            const allStudentDetails = studentDetailsResults.flatMap(result => result.data);
+            
             return response.status(201).json({
                 messageType: LogType.INFO,
                 message: `${results.length} student calling record(s) created successfully.`,
-                data: results
+                data: allStudentDetails
             });
         } else {
+            logger.logError('Failed to create student calling records - empty result from database');
             return response.status(500).json({
                 messageType: LogType.ERROR,
-                message: 'Failed to create student calling records.',
+                message: 'Failed to create student calling records. Check server logs for details.',
             });
         }
     } catch (error: any) {
         logger.logError(`Error creating student calling: ${error.message}`);
-        return response.status(500).json({ messageType: LogType.ERROR, message: 'Internal server error' });
+        return response.status(500).json({ messageType: LogType.ERROR, message: `Internal server error: ${error.message}` });
     }
 };
 

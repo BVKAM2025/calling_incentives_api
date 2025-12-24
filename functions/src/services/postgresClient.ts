@@ -227,16 +227,26 @@ export const createStudentCallingDB = async (
   updatedBy: string
 ): Promise<StudentCalling[]> => {
   const pool = await ensurePool();
-  if (!pool) return [];
+  if (!pool) {
+    logger.logError('Pool is not available for student calling insert');
+    return [];
+  }
 
   const client = await pool.connect();
   try {
     const data = Array.isArray(callingData) ? callingData : [callingData];
-    const query = 'SELECT * FROM public.fn_bulk_insert_student_calling($1, $2, $3)';
+    logger.logInfo(`Calling fn_bulk_insert_student_calling with ${data.length} records`);
+    logger.logInfo(`Sample data: ${JSON.stringify(data[0])}`);
+    
+    const query = 'SELECT * FROM public.fn_bulk_insert_student_calling($1::json, $2::uuid, $3::uuid)';
     const result = await client.query(query, [JSON.stringify(data), createdBy, updatedBy]);
+    
+    logger.logInfo(`Database function returned ${result.rows.length} rows`);
     return result.rows;
   } catch (error: any) {
     logger.logError(`error in bulk student calling insert: ${error.message}`);
+    logger.logError(`error stack: ${error.stack}`);
+    logger.logError(`error code: ${error.code}`);
     return [];
   } finally {
     client.release();
@@ -366,16 +376,26 @@ export const createStudentIncentiveDB = async (
   updatedBy: string
 ): Promise<StudentIncentive[]> => {
   const pool = await ensurePool();
-  if (!pool) return [];
+  if (!pool) {
+    logger.logError('Pool is not available for student incentive insert');
+    return [];
+  }
 
   const client = await pool.connect();
   try {
     const data = Array.isArray(incentiveData) ? incentiveData : [incentiveData];
-    const query = 'SELECT * FROM public.fn_bulk_insert_student_incentives($1, $2, $3)';
+    logger.logInfo(`Calling fn_bulk_insert_student_incentives with ${data.length} records`);
+    logger.logInfo(`Sample data: ${JSON.stringify(data[0])}`);
+    
+    const query = 'SELECT * FROM public.fn_bulk_insert_student_incentives($1::json, $2::uuid, $3::uuid)';
     const result = await client.query(query, [JSON.stringify(data), createdBy, updatedBy]);
+    
+    logger.logInfo(`Database function returned ${result.rows.length} rows`);
     return result.rows;
   } catch (error: any) {
     logger.logError(`error in bulk student incentive insert: ${error.message}`);
+    logger.logError(`error stack: ${error.stack}`);
+    logger.logError(`error code: ${error.code}`);
     return [];
   } finally {
     client.release();
