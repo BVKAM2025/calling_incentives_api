@@ -369,6 +369,24 @@ export const deleteStudentCallingDB = async (id: string): Promise<boolean> => {
   }
 };
 
+export const deleteStudentCallingByStudentIdDB = async (studentId: string): Promise<boolean> => {
+  const pool = await ensurePool();
+  if (!pool) return false;
+
+  const client = await pool.connect();
+  try {
+    const query = 'DELETE FROM student_calling WHERE student_id = $1';
+    const result = await client.query(query, [studentId]);
+    logger.logInfo(`Deleted ${result.rowCount ?? 0} existing calling records for student_id: ${studentId}`);
+    return true;
+  } catch (error: any) {
+    logger.logError(`error deleting student calling by student_id: ${error.message}`);
+    return false;
+  } finally {
+    client.release();
+  }
+};
+
 // Student Incentives DB Functions
 export const createStudentIncentiveDB = async (
   incentiveData: StudentIncentive | StudentIncentive[],
@@ -512,6 +530,24 @@ export const deleteStudentIncentiveDB = async (id: string): Promise<boolean> => 
     return (result.rowCount ?? 0) > 0;
   } catch (error: any) {
     logger.logError(`error deleting student incentive: ${error.message}`);
+    return false;
+  } finally {
+    client.release();
+  }
+};
+
+export const deleteStudentIncentiveByStudentIdDB = async (studentId: string): Promise<boolean> => {
+  const pool = await ensurePool();
+  if (!pool) return false;
+
+  const client = await pool.connect();
+  try {
+    const query = 'DELETE FROM student_incentives WHERE student_id = $1';
+    const result = await client.query(query, [studentId]);
+    logger.logInfo(`Deleted ${result.rowCount ?? 0} existing incentive records for student_id: ${studentId}`);
+    return true;
+  } catch (error: any) {
+    logger.logError(`error deleting student incentive by student_id: ${error.message}`);
     return false;
   } finally {
     client.release();

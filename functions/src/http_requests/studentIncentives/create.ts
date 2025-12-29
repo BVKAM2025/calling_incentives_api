@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Logger } from '../../helpers/logger';
 import { LogType } from '../../helpers/enum';
 import { getIdFromBearerToken } from '../../helpers/authHelper';
-import { createStudentIncentiveDB, getStudentsDB } from '../../services/postgresClient';
+import { createStudentIncentiveDB, getStudentsDB, deleteStudentIncentiveByStudentIdDB } from '../../services/postgresClient';
 
 const logger = new Logger();
 
@@ -25,6 +25,11 @@ export const createStudentIncentive = async (request: Request, response: Respons
             };
         });
 
+        // Delete existing records for these student IDs before inserting
+        const studentIds = [...new Set(dataToInsert.map(item => item.student_id))];
+        logger.logInfo(`Deleting existing incentive records for ${studentIds.length} student(s)`);
+        await Promise.all(studentIds.map(studentId => deleteStudentIncentiveByStudentIdDB(studentId)));
+
         logger.logInfo(`Attempting to create ${dataToInsert.length} student incentive record(s)`);
         const results = await createStudentIncentiveDB(dataToInsert, userId, userId);
         logger.logInfo(`Database returned ${results?.length || 0} records`);
@@ -32,15 +37,15 @@ export const createStudentIncentive = async (request: Request, response: Respons
         if (results && results.length > 0) {
             // Get unique student IDs from created records
             const studentIds = [...new Set(results.map(r => r.student_id))];
-            
+
             // Fetch full student details with calling and incentives for all affected students
-            const studentDetailsPromises = studentIds.map(studentId => 
+            const studentDetailsPromises = studentIds.map(studentId =>
                 getStudentsDB(studentId, null, null, null, null, userId, null, null, null, null, null, null)
             );
-            
+
             const studentDetailsResults = await Promise.all(studentDetailsPromises);
             const allStudentDetails = studentDetailsResults.flatMap(result => result.data);
-            
+
             return response.status(201).json({
                 messageType: LogType.INFO,
                 message: `${results.length} student incentive record(s) created successfully.`,

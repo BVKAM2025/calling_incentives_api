@@ -17,6 +17,7 @@ export interface StudentIncentive {
   student_id: string;
   user_id: string;
   incentive_amount: number;
+  incentive_date?: string;
   is_incentive_done: boolean;
   created_on: string;
   created_by: string;
