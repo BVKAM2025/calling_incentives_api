@@ -4,6 +4,7 @@ import { Logger } from '../../helpers/logger';
 import { LogType } from '../../helpers/enum';
 import { getIdFromBearerToken } from '../../helpers/authHelper';
 import { createStudentIncentiveDB, getStudentsDB, deleteStudentIncentiveByStudentIdDB } from '../../services/postgresClient';
+import { getCurrentDateTimeInIST } from '../../helpers/dateTimeFormatters';
 
 const logger = new Logger();
 
@@ -21,7 +22,9 @@ export const createStudentIncentive = async (request: Request, response: Respons
             const { id, ...itemWithoutId } = item;
             return {
                 ...itemWithoutId,
-                id: uuidv4()
+                id: uuidv4(),
+                created_on: getCurrentDateTimeInIST(),
+                updated_on: getCurrentDateTimeInIST()
             };
         });
 
