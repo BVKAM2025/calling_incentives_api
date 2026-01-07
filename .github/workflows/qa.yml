@@ -1,0 +1,50 @@
+name: Deploy CI/CD pipeline for calling-incentives microservice
+
+on:
+  push:
+    branches: [qa]
+
+jobs:
+  deploy-calling-incentives:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_NAME: "EduNexus-QA"
+      PROJECT_ID: "integral-league-443512-k5"
+      REGION: "asia-south1"
+      ENVIRONMENT: "qa"
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Modify TypeScript Configuration
+        run: |
+          echo "export const config = { projectName: '${PROJECT_NAME}',projectId:'${PROJECT_ID}',env:'${ENVIRONMENT}' };" > functions/src/helpers/config.ts
+
+      - name: Install dependencies
+        run: |
+          cd /home/runner/work/calling_incentives_api/calling_incentives_api/functions
+          npm install
+
+      # - name: Install Node.js and npm
+      #   uses: actions/setup-node@v2
+      #   with:
+      #     node-version: "20" # Adjust the Node.js version as needed
+
+      # - name: Authenticate with Google Cloud Platform
+      #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@v0.2.1
+      #   with:
+      #     project_id: integral-league-443512-k5
+      #     service_account_key: ${{ secrets.GCP_SECRET_KEY_QA }}
+
+      # - name: Deploy to Cloud calling-incentives api
+      #   run: |
+      #     cd /home/runner/work/calling_incentives_api/calling_incentives_api/functions
+      #     FUNCTION_NAME="http-calling-incentive-${ENVIRONMENT}"
+      #     gcloud functions deploy "${FUNCTION_NAME}" \
+      #       --gen2 \
+      #       --runtime nodejs20 \
+      #       --trigger-http \
+      #       --allow-unauthenticated \
+      #       --region "${REGION}" \
+      #       --project "${PROJECT_ID}" \
+      #       --memory 512MiB \
+      #       --max-instances 10
